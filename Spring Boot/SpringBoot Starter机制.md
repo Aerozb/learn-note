@@ -21,7 +21,7 @@ springboot通过一个@SpringBootApplication注解启动项目，springboot在�
 
 starter 组件开发，核心是自动注解类的注解顺序，即根据条件进行注解
 
-![4ed955cb2ab50c100dbd2d2d1c93542c_watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA5bCP5b2t5LiN5Lya56eD5aS0,size_20,color_FFFFFF,t_70,g_se,x_16](D:\soft\360极速浏览器\360chrome\User Data\temp\4ed955cb2ab50c100dbd2d2d1c93542c_watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA5bCP5b2t5LiN5Lya56eD5aS0,size_20,color_FFFFFF,t_70,g_se,x_16.png)
+![](./assets/4ed955cb2ab50c100dbd2d2d1c93542c_watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA5bCP5b2t5LiN5Lya56eD5aS0,size_20,color_FFFFFF,t_70,g_se,x_16-1697784396220-2.png)
 
 # 自定义starter的开发流程
 1. 创建Starter项目(spring-initl 2.1.14)
