@@ -275,6 +275,13 @@ public class ShardingUtil {
         ShardingUtil.tableMapper = tableMapper;
     }
 
+    public static void setTableExistMap(List<String> shardingTableNameList) {
+        for (String shardingTableName : shardingTableNameList) {
+            int shardingYearMonth = getShardingYearMonth(shardingTableName);
+            tableExistMap.put(shardingTableName, shardingYearMonth);
+        }
+    }
+
     public static boolean isExistTableCache(String tableName) {
         return tableExistMap.containsKey(tableName);
     }
@@ -291,7 +298,7 @@ public class ShardingUtil {
             return;
         }
 
-        int shardingYearMonth = Integer.parseInt(StrUtil.subSufByLength(tableName, DatePattern.SIMPLE_MONTH_PATTERN.length()));
+        int shardingYearMonth = getShardingYearMonth(tableName);
         int nowYearMonth = Integer.parseInt(DateUtil.format(new Date(), DatePattern.SIMPLE_MONTH_PATTERN));
         if (shardingYearMonth > nowYearMonth) {
             throw new RuntimeException("创建表失败超出当前年月:" + shardingYearMonth);
@@ -321,6 +328,10 @@ public class ShardingUtil {
                 .map(latestYearMonth -> DateUtil.parse(String.valueOf(latestYearMonth), DatePattern.SIMPLE_MONTH_PATTERN))
                 .orElseThrow(() -> new RuntimeException("不存在此省份分表:" + provinceAbbreviation));
     }
+
+    private static int getShardingYearMonth(String tableName) {
+        return Integer.parseInt(StrUtil.subSufByLength(tableName, DatePattern.SIMPLE_MONTH_PATTERN.length()));
+    }
 }
 ```
 
@@ -345,7 +356,8 @@ public class ShardingTablesLoadRunner implements CommandLineRunner {
         // 给 分表工具类注入属性
         ShardingUtil.setTableMapper(tableMapper);
         //加载真实表缓存
-        tableMapper.getShardingTableName(Constant.SHARDING_DB_NAME, Constant.SHARDING_TABLE_NAME);
+        List<String> shardingTableNameList = tableMapper.getShardingTableName(Constant.SHARDING_DB_NAME, Constant.SHARDING_TABLE_NAME);
+        ShardingUtil.setTableExistMap(shardingTableNameList);
     }
 }
 ```
