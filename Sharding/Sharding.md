@@ -77,13 +77,17 @@
 2. **分片算法的选择和配置**：
    - 根据查询类型配置合适的分片算法，比如精确分片算法或范围分片算法。
 
-# spring-boot整合ShardingJDBC 4.1.1（5目前整合失败）
+# spring-boot 2.7.18整合sharding-jdbc-spring-boot-starter 4.1.1
+
+5的整合不了暂时有问题
 
 ## 需求
 
 **需求一**：根据创建时间的年月分表
 
 **需求二**：根据 省份和创建时间的年月 分表
+
+还需要自动创建表
 
 ## 代码
 
@@ -103,7 +107,7 @@ CREATE TABLE `sharding_user` (
 
 ## 依赖
 
-spring-boot 2.7.18+sharding-jdbc-spring-boot-starter 4.1.1
+
 
 使用`druid-spring-boot-starter` 会报错`Property 'sqlSessionFactory' or 'sqlSessionTemplate' are required`
 
@@ -167,13 +171,14 @@ spring:
       learn:
         type: com.alibaba.druid.pool.DruidDataSource # 数据库连接池类名称
         driver-class-name: com.mysql.cj.jdbc.Driver # 数据库驱动类名
-        url: jdbc:mysql://ip:3306/learn?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai # 数据库url连接
+        url: jdbc:mysql://47.116.44.79:3306/learn?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai # 数据库url连接
         username: root # 数据库用户名
         password: 123456 # 数据库密码
     sharding:
       default-data-source-name: learn
       tables:
         sharding_user:
+          # 会根据这里的表达式生成分表名，传入到各个分片算法的doSharding方法的Collection<String> availableTargetNames
           actual-data-nodes: learn.sharding_user
           # 分表策略
           table-strategy:
@@ -241,6 +246,24 @@ public interface TableMapper {
 
 ```
 
+## 常量
+
+```java
+public interface Constant {
+    /**
+     * 需要分片的库
+     */
+    String SHARDING_DB_NAME = "learn";
+
+    /**
+     * 需要分片的表
+     */
+    String SHARDING_TABLE_NAME = "sharding_user";
+}
+```
+
+
+
 ## 分片工具类
 
 ```java
@@ -274,7 +297,7 @@ public class ShardingUtil {
             throw new RuntimeException("创建表失败超出当前年月:" + shardingYearMonth);
         }
 
-        int row = tableMapper.existTable("learn", tableName);
+        int row = tableMapper.existTable(Constant.SHARDING_DB_NAME, tableName);
         //表不存在则创建并塞入缓存
         if (row <= 0) {
             tableMapper.createTable(tableName, templateTableName);
@@ -305,7 +328,9 @@ public class ShardingUtil {
 
 ```java
 /**
- * 项目启动后 给 分表工具类注入属性
+ * 项目启动后
+ * 1.分表工具类注入属性
+ * 2.把已有的真实表加载进缓存，否则项目重启缓存不见
  */
 @Slf4j
 @Order(value = 1) // 数字越小 越先执行
@@ -319,11 +344,13 @@ public class ShardingTablesLoadRunner implements CommandLineRunner {
     public void run(String... args) {
         // 给 分表工具类注入属性
         ShardingUtil.setTableMapper(tableMapper);
+        //加载真实表缓存
+        tableMapper.getShardingTableName(Constant.SHARDING_DB_NAME, Constant.SHARDING_TABLE_NAME);
     }
 }
 ```
 
-## 单个分片键策略-用于精确和范围查询
+## 单个分片键策略-用于精确和范围查询（解决需求一）
 
 ```java
 /**
@@ -375,7 +402,7 @@ public class SingleColumnPreciseShardingAlgorithm implements PreciseShardingAlgo
 }
 ```
 
-## 自定义多片键
+## 自定义多片键（解决需求二）
 
 ```java
 /**
@@ -492,3 +519,76 @@ public class MultiColumnComplexKeysShardingAlgorithm implements ComplexKeysShard
     }
 }
 ```
+
+## 编写测试请求
+
+先请求保存，在请求多片键multiColumnList
+
+```java
+@RestController
+@RequestMapping("/user")
+public class UserController {
+
+    @Autowired
+    private UserService userService;
+
+    @GetMapping("/singleColumnList")
+    public PageInfo<User> singleColumnList() {
+        PageHelper.startPage(1, 10);
+        LambdaQueryWrapper<User> wrapper = Wrappers.lambdaQuery();
+        wrapper.ge(User::getCreateTime, DateUtil.parse("202302", DatePattern.SIMPLE_MONTH_PATTERN));
+        wrapper.le(User::getCreateTime, new Date());
+        List<User> list = userService.list(wrapper);
+        return new PageInfo<>(list);
+    }
+
+    @GetMapping("/multiColumnList")
+    public PageInfo<User> multiColumnList() {
+        PageHelper.startPage(1, 10);
+        LambdaQueryWrapper<User> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(User::getProvinceAbbreviation, "wh");
+//        wrapper.ge(User::getCreateTime,DateUtil.parse("202302", DatePattern.SIMPLE_MONTH_PATTERN));
+//        wrapper.le(User::getCreateTime,new Date());
+        wrapper.eq(User::getCreateTime, DateUtil.parse("202403", DatePattern.SIMPLE_MONTH_PATTERN));
+        List<User> list = userService.list(wrapper);
+        return new PageInfo<>(list);
+    }
+
+
+    @PostMapping("/save")
+    public void save() {
+        List<User> users = generateUsers(5);
+        for (User user : users) {
+            userService.save(user);
+        }
+    }
+
+    public static List<User> generateUsers(int count) {
+        List<User> users = new ArrayList<>();
+        List<Date> dates = new ArrayList<>();
+        List<String> provinceAbbreviation = new ArrayList<>();
+        provinceAbbreviation.add("fz");
+        provinceAbbreviation.add("bj");
+        provinceAbbreviation.add("wh");
+        provinceAbbreviation.add("hn");
+        provinceAbbreviation.add("sh");
+        dates.add(DateUtil.parse("202401", DatePattern.SIMPLE_MONTH_PATTERN));
+        dates.add(DateUtil.parse("202402", DatePattern.SIMPLE_MONTH_PATTERN));
+        dates.add(DateUtil.parse("202403", DatePattern.SIMPLE_MONTH_PATTERN));
+        dates.add(DateUtil.parse("202404", DatePattern.SIMPLE_MONTH_PATTERN));
+        dates.add(DateUtil.parse("202405", DatePattern.SIMPLE_MONTH_PATTERN));
+        for (int i = 0; i < count; i++) {
+            User user = new User();
+            long snowflakeNextId = IdUtil.getSnowflakeNextId();
+            user.setId(snowflakeNextId);
+            user.setUsername("user" + snowflakeNextId);
+            user.setProvinceAbbreviation(provinceAbbreviation.get(i));
+            user.setCreateTime(dates.get(i));
+            users.add(user);
+        }
+        return users;
+    }
+
+}
+```
+
