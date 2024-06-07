@@ -1,5 +1,282 @@
 
 
+
+
+# RocketMQ5.2.0-linux 单机部署
+
+要保证内存够，不然会杀进程，或者修改`runserver.sh`,`runbroker.sh`脚本把内存调小，这个试了感觉没啥效果
+
+```shell
+# 下载 RocketMQ 5.2.0 的二进制发行包
+wget https://dist.apache.org/repos/dist/release/rocketmq/5.2.0/rocketmq-all-5.2.0-bin-release.zip
+
+# 解压下载的压缩包
+unzip rocketmq-all-5.2.0-bin-release.zip
+
+# 进入解压后的 RocketMQ 目录中的 bin 子目录
+cd rocketmq-all-5.2.0-bin-release/bin/
+
+# 启动 RocketMQ Name Server，并将其放在后台运行
+sh mqnamesrv &
+
+# 启动 RocketMQ Broker，指定 Name Server 地址并启用代理功能，将其放在后台运行
+sh mqbroker -n localhost:9876 --enable-proxy &
+
+# 实时查看代理服务器日志，以便检查是否正常运行
+tail -f ~/logs/rocketmqlogs/proxy.log
+```
+
+# 概念
+
+## 消费者分组
+
+### 1. **负载均衡**
+
+消费者分组实现了消息的负载均衡。当多个消费者实例属于同一个消费者分组时，RocketMQ 会将同一主题的消息分配给这些消费者实例进行消费。每条消息只会被同一消费者分组中的一个消费者实例消费，确保消息不会被重复消费。这有助于提高消费的并发能力和处理效率。
+
+### 2. **消息广播**
+
+消费者分组可以支持消息广播消费模式。在广播模式下，主题的每条消息会被消费者分组中的每个消费者实例消费一次。这样可以确保所有消费者实例都能接收到消息。这种模式适用于需要所有实例都处理消息的场景。
+
+### 3. **消费状态管理**
+
+消费者分组管理消费者的消费状态，包括消费进度（offset）和消费位置。当消费者实例重新启动或者新的消费者实例加入同一消费者分组时，它们可以继续从上次的位置开始消费，保证消息消费的连续性和可靠性。
+
+### 4. **消息重试**
+
+消费者分组支持消息重试机制。当消费者实例处理消息失败时，RocketMQ 可以将该消息重新投递到消费者分组，以便其他消费者实例或同一实例进行重试。这有助于保证消息的最终一致性和处理成功率。
+
+
+
+假设你有3个消费者分组 A、B 和 C，并且它们都订阅了同一个主题 `topicX`，那么消息会被消费几次取决于消费模式：
+
+- **集群模式**（默认模式）：
+  - 如果所有分组 A、B 和 C 都使用集群模式，那么每个分组中的消费者实例都会消费到消息。
+  - 每条消息会被每个分组各消费一次，总共会被消费3次。
+- **广播模式**：
+  - 如果所有分组 A、B 和 C 都使用广播模式，那么每个分组中的每个消费者实例都会消费到消息。
+  - 每条消息会被每个分组的每个实例都消费一次。
+
+## 队列的概念
+
+- **Topic**：主题，是消息分类的标识。每个主题可以包含多个队列。
+- **Queue**：队列，是消息实际存储的地方。每个主题下可以有多个队列，消息会分布在这些队列中。
+
+## 消息发送与队列选择
+
+在 RocketMQ 中，消息发送到主题时会通过特定的算法（如轮询、随机、顺序等）分配到该主题的不同队列中。以下是一些常见的队列选择策略：
+
+- **轮询（Round Robin）**：消息按顺序循环发送到不同的队列。
+- **随机（Random）**：消息随机分配到一个队列。
+- **顺序（Orderly）**：如果启用了顺序消息（Orderly Message），消息会根据指定的键（如订单ID）发送到同一个队列，以确保同一键的消息按顺序消费。
+
+# 顺序消息
+
+RocketMQ 允许在同一个主题（Topic）下有多个队列。消息发送到同一主题时，默认情况下，消息会根据负载均衡策略分配到不同的队列。因此，同一主题下的消息并不一定会在同一个队列中，而是可能分散在多个队列中。
+
+## 概念
+
+顺序消息是一种特殊的消息类型，确保同一键的消息按顺序发送和消费。实现顺序消息的关键在于指定消息发送的 `hashKey`，RocketMQ 会根据这个 `hashKey` 将消息发送到同一个队列。例如，订单相关的消息可以使用订单ID作为 `hashKey`，这样订单的创建和支付消息会发送到同一个队列，确保顺序消费。
+
+所以有的场景就是要按顺序一一消费，不然分布在不同队列就没办法按顺序消费了
+
+## spring-boot整合rocketmq使用顺序消息
+
+使用的是RocketMQ 5.2.0
+
+### 引入依赖
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com</groupId>
+        <artifactId>rocketmq</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>orderly_message</artifactId>
+    <packaging>jar</packaging>
+
+    <properties>
+        <!--        加了下面这三个才不会启动报错找不到OrderlyMessageApplication-->
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <spring-boot.version>2.7.6</spring-boot.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-spring-boot-starter</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+    </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>
+```
+
+### yml配置
+
+```yaml
+rocketmq:
+  name-server: 127.0.1.1:9876  # RocketMQ 地址
+  producer:
+    group: orderlyProducerGroup  # 随便给一个默认的生产者组，不填启动项目报错 Field rocketMQTemplate in com.yhy.producer.SendOrderlyMessage required a bean of type 'org.apache.rocketmq.spring.core.RocketMQTemplate' that could not be found.
+```
+
+### 常量
+
+```java
+public interface Constant {
+    String ORDERLY_CONSUMER_GROUP = "orderlyConsumerGroup";
+    String ORDERLY_TOPIC = "orderlyTopic";
+    String SYNC_ORDERLY_HASH_KEY = "syncOrderlyHashKey";
+    String ASYNC_ORDERLY_HASH_KEY = "asyncOrderlyHashKey";
+}
+```
+
+### 消费者
+
+**consumeMode**这个是关键，保证这个主题是顺序消费
+
+```java
+@Slf4j
+@Service
+@RocketMQMessageListener(topic = Constant.ORDERLY_TOPIC,
+        consumerGroup = Constant.ORDERLY_CONSUMER_GROUP,
+        consumeMode = ConsumeMode.ORDERLY)
+public class OrderMessageConsumer implements RocketMQListener<String> {
+
+    @Override
+    public void onMessage(String message) {
+        log.info("订单消费者接收到的消息: {}", message);
+        // 处理消息的业务逻辑
+    }
+}
+```
+
+### 生产者
+
+有两个方法同步和异步，都只用同步，异步那个会出现消费不按照发送顺序
+
+hashkey要一致，才能保证顺序
+
+```java
+@Slf4j
+@Component
+public class SendOrderlyMessage {
+
+    @Autowired
+    private RocketMQTemplate rocketMQTemplate;
+
+    /**
+     * 同步顺序消息
+     */
+    public void sync() {
+        String message = "我是一条同步顺序消息:";
+        for (int i = 0; i < 5; i++) {
+            // hashkey是为了确保这些消息被路由到同一个消息队列，这样消费者就能够按照顺序处理它们
+            rocketMQTemplate.syncSendOrderly(Constant.ORDERLY_TOPIC, message + i, Constant.SYNC_ORDERLY_HASH_KEY);
+        }
+    }
+
+    public void async() {
+        String message = "我是一条异步顺序消息:";
+        for (int i = 0; i < 5; i++) {
+            // hashkey是为了确保这些消息被路由到同一个消息队列，这样消费者就能够按照顺序处理它们
+            int finalI = i;
+            rocketMQTemplate.asyncSendOrderly(Constant.ORDERLY_TOPIC, message + i, Constant.ASYNC_ORDERLY_HASH_KEY, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    // 异步发送成功的回调逻辑
+                    log.info("异步顺序消息【{}】发送成功: {}", finalI, sendResult);
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    // 异步发送失败的回调逻辑
+                    log.info("异步顺序消息【{}】发送失败: {}", finalI, e.getMessage());
+                }
+            });
+//            try {
+//                Thread.sleep(200L);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+        }
+    }
+}
+```
+
+### 控制器
+
+```java
+@RestController
+@RequestMapping
+public class TestController {
+    @Autowired
+    private SendOrderlyMessage sendOrderlyMessage;
+
+    @GetMapping("/sync")
+    public void sync() {
+        sendOrderlyMessage.sync();
+    }
+
+    @GetMapping("/async")
+    public void async() {
+        sendOrderlyMessage.async();
+    }
+}
+```
+
+### 测试
+
+GET http://localhost:8080/sync
+
+```
+2024-06-07 16:15:05.410  INFO 15748 --- [ConsumerGroup_1] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条同步顺序消息:0
+2024-06-07 16:15:05.438  INFO 15748 --- [ConsumerGroup_2] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条同步顺序消息:1
+2024-06-07 16:15:05.467  INFO 15748 --- [ConsumerGroup_3] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条同步顺序消息:2
+2024-06-07 16:15:05.496  INFO 15748 --- [ConsumerGroup_4] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条同步顺序消息:3
+2024-06-07 16:15:05.524  INFO 15748 --- [ConsumerGroup_5] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条同步顺序消息:4
+```
+
+GET http://localhost:8080/async 可以看出消费不按照顺序，所以要使用syncSendOrderly同步方法
+
+```
+2024-06-07 16:15:41.488  INFO 15748 --- [blicExecutor_11] com.yhy.producer.SendOrderlyMessage      : 异步顺序消息【3】发送成功: SendResult [sendStatus=SEND_OK, msgId=C0A81F103D8418B4AAC222636D860008, offsetMsgId=AC10FC7500002A9F000000000000396C, messageQueue=MessageQueue [topic=orderlyTopic, brokerName=broker-a, queueId=2], queueOffset=27]
+2024-06-07 16:15:41.488  INFO 15748 --- [blicExecutor_12] com.yhy.producer.SendOrderlyMessage      : 异步顺序消息【1】发送成功: SendResult [sendStatus=SEND_OK, msgId=C0A81F103D8418B4AAC222636D850006, offsetMsgId=AC10FC7500002A9F000000000000380E, messageQueue=MessageQueue [topic=orderlyTopic, brokerName=broker-a, queueId=2], queueOffset=26]
+2024-06-07 16:15:41.488  INFO 15748 --- [blicExecutor_10] com.yhy.producer.SendOrderlyMessage      : 异步顺序消息【2】发送成功: SendResult [sendStatus=SEND_OK, msgId=C0A81F103D8418B4AAC222636D860007, offsetMsgId=AC10FC7500002A9F00000000000036B0, messageQueue=MessageQueue [topic=orderlyTopic, brokerName=broker-a, queueId=2], queueOffset=25]
+2024-06-07 16:15:41.488  INFO 15748 --- [ublicExecutor_1] com.yhy.producer.SendOrderlyMessage      : 异步顺序消息【0】发送成功: SendResult [sendStatus=SEND_OK, msgId=C0A81F103D8418B4AAC222636D850005, offsetMsgId=AC10FC7500002A9F0000000000003ACA, messageQueue=MessageQueue [topic=orderlyTopic, brokerName=broker-a, queueId=2], queueOffset=28]
+2024-06-07 16:15:41.492  INFO 15748 --- [ublicExecutor_2] com.yhy.producer.SendOrderlyMessage      : 异步顺序消息【4】发送成功: SendResult [sendStatus=SEND_OK, msgId=C0A81F103D8418B4AAC222636D860009, offsetMsgId=AC10FC7500002A9F0000000000003C28, messageQueue=MessageQueue [topic=orderlyTopic, brokerName=broker-a, queueId=2], queueOffset=29]
+2024-06-07 16:15:41.492  INFO 15748 --- [ConsumerGroup_6] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条异步顺序消息:2
+2024-06-07 16:15:41.492  INFO 15748 --- [ConsumerGroup_6] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条异步顺序消息:1
+2024-06-07 16:15:41.518  INFO 15748 --- [ConsumerGroup_7] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条异步顺序消息:3
+2024-06-07 16:15:41.518  INFO 15748 --- [ConsumerGroup_7] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条异步顺序消息:0
+2024-06-07 16:15:41.519  INFO 15748 --- [ConsumerGroup_7] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条异步顺序消息:4
+
+```
+
+
+
 # 分布式事务解决方案之可靠消息最终一致性
 
 ## 前提概要
@@ -221,7 +498,7 @@ PRIMARY KEY (`tx_no`) USING BTREE
 
 #### 启动RocketMQ
 1.**下载RocketMQ服务器**
-下载地址：https://rocketmq.apache.org/download/
+下载地址：https://rocketmq.apache.org/download/ 下4.5.0
 
 **2.解压并启动**
 
