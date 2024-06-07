@@ -1,7 +1,3 @@
-
-
-
-
 # RocketMQ5.2.0-linux 单机部署
 
 要保证内存够，不然会杀进程，或者修改`runserver.sh`,`runbroker.sh`脚本把内存调小，这个试了感觉没啥效果
@@ -81,6 +77,8 @@ RocketMQ 允许在同一个主题（Topic）下有多个队列。消息发送到
 所以有的场景就是要按顺序一一消费，不然分布在不同队列就没办法按顺序消费了
 
 ## spring-boot整合rocketmq使用顺序消息
+
+参考：https://blog.csdn.net/Alian_1223/article/details/136625959
 
 使用的是RocketMQ 5.2.0
 
@@ -272,10 +270,7 @@ GET http://localhost:8080/async 可以看出消费不按照顺序，所以要使
 2024-06-07 16:15:41.518  INFO 15748 --- [ConsumerGroup_7] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条异步顺序消息:3
 2024-06-07 16:15:41.518  INFO 15748 --- [ConsumerGroup_7] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条异步顺序消息:0
 2024-06-07 16:15:41.519  INFO 15748 --- [ConsumerGroup_7] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条异步顺序消息:4
-
 ```
-
-
 
 # 分布式事务解决方案之可靠消息最终一致性
 
