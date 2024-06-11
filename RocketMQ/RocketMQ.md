@@ -166,7 +166,8 @@ public class OrderMessageConsumer implements RocketMQListener<String> {
     @Override
     public void onMessage(String message) {
         log.info("订单消费者接收到的消息: {}", message);
-        // 处理消息的业务逻辑
+        //延时5秒，看是否消费完成才继续消费下一个
+        TimeUnit.SECONDS.sleep(5);
     }
 }
 ```
@@ -190,7 +191,7 @@ public class SendOrderlyMessage {
      */
     public void sync() {
         String message = "我是一条同步顺序消息:";
-        for (int i = 0; i < 5; i++) {
+        for (int i = 1; i <= 5; i++) {
             // hashkey是为了确保这些消息被路由到同一个消息队列，这样消费者就能够按照顺序处理它们
             rocketMQTemplate.syncSendOrderly(Constant.ORDERLY_TOPIC, message + i, Constant.SYNC_ORDERLY_HASH_KEY);
         }
@@ -247,14 +248,15 @@ public class TestController {
 
 ### 测试
 
-GET http://localhost:8080/sync
+GET http://localhost:8080/sync，可以看出消费完一个才继续消费下一个
 
 ```
-2024-06-07 16:15:05.410  INFO 15748 --- [ConsumerGroup_1] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条同步顺序消息:0
-2024-06-07 16:15:05.438  INFO 15748 --- [ConsumerGroup_2] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条同步顺序消息:1
-2024-06-07 16:15:05.467  INFO 15748 --- [ConsumerGroup_3] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条同步顺序消息:2
-2024-06-07 16:15:05.496  INFO 15748 --- [ConsumerGroup_4] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条同步顺序消息:3
-2024-06-07 16:15:05.524  INFO 15748 --- [ConsumerGroup_5] com.yhy.consume.OrderMessageConsumer     : 订单消费者接收到的消息: 我是一条同步顺序消息:4
+2024-06-11 09:56:00.145  INFO 9692 --- [ConsumerGroup_1] com.yhy.consumer.OrderMessageConsumer    : 订单消费者接收到的消息: 我是一条同步顺序消息:1
+2024-06-11 09:56:05.148  INFO 9692 --- [ConsumerGroup_1] com.yhy.consumer.OrderMessageConsumer    : 订单消费者接收到的消息: 我是一条同步顺序消息:2
+2024-06-11 09:56:10.148  INFO 9692 --- [ConsumerGroup_1] com.yhy.consumer.OrderMessageConsumer    : 订单消费者接收到的消息: 我是一条同步顺序消息:3
+2024-06-11 09:56:15.148  INFO 9692 --- [ConsumerGroup_1] com.yhy.consumer.OrderMessageConsumer    : 订单消费者接收到的消息: 我是一条同步顺序消息:4
+2024-06-11 09:56:20.149  INFO 9692 --- [ConsumerGroup_1] com.yhy.consumer.OrderMessageConsumer    : 订单消费者接收到的消息: 我是一条同步顺序消息:5
+
 ```
 
 GET http://localhost:8080/async 可以看出消费不按照顺序，所以要使用syncSendOrderly同步方法
