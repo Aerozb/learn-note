@@ -1,0 +1,1 @@
+收发消息看facebook文档，用的都是Messenger的api
