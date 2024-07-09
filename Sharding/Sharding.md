@@ -186,7 +186,7 @@ spring:
       learn:
         type: com.alibaba.druid.pool.DruidDataSource # 数据库连接池类名称
         driver-class-name: com.mysql.cj.jdbc.Driver # 数据库驱动类名
-        url: jdbc:mysql://47.116.44.79:3306/learn?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai # 数据库url连接
+        url: jdbc:mysql://ip:3306/learn?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai # 数据库url连接
         username: root # 数据库用户名
         password: 123456 # 数据库密码
     sharding:
