@@ -145,6 +145,21 @@ CREATE TABLE `sharding_user` (
             <artifactId>pagehelper-spring-boot-starter</artifactId>
             <version>2.1.0</version>
         </dependency>
+            <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.8.28</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.26</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.11</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>
@@ -224,6 +239,7 @@ public interface TableMapper {
 
     int existTable(@Param("tableSchema") String tableSchema, @Param("tableName") String tableName);
 
+    List<String> getShardingTableName(@Param("tableSchema") String tableSchema, @Param("templateTableName") String templateTableNam);
 }
 ```
 
@@ -242,8 +258,13 @@ public interface TableMapper {
     <update id="createTable">
         CREATE TABLE ${tableName} like ${templateTableName}
     </update>
+        <select id="getShardingTableName" resultType="String">
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = #{tableSchema}
+          AND table_name like CONCAT(#{templateTableName}, '_%')
+    </select>
 </mapper>
-
 ```
 
 ## 常量
@@ -603,4 +624,3 @@ public class UserController {
 
 }
 ```
-
