@@ -36,3 +36,6 @@ Webhook文档： https://developers.facebook.com/docs/messenger-platform/webhook
 
 
 
+
+
+**最后重要的事就是，想要收到消息应用必须上线，不然收不到**
