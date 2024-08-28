@@ -33,6 +33,6 @@ Webhooks 通知参数文档：https://developers.facebook.com/docs/whatsapp/clou
 
 
 
-上传下载媒体文件文档：https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media/#download-media
+上传下载媒体文件，媒体类型文档：https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media/#download-media
 
-发送消息请求可能需要，上传到它们的服务器才能发
+发送媒体消息请求需要上传到它们的服务器才能发
