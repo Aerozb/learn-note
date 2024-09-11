@@ -1,0 +1,278 @@
+<mxfile host="Electron" modified="2024-09-11T09:22:54.027Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/21.3.7 Chrome/112.0.5615.204 Electron/24.5.0 Safari/537.36" etag="_VgbmUF9TTnXvgc_Qm-8" version="21.3.7" type="device" pages="2">
+  <diagram name="接收用户消息" id="2YBvvXClWsGukQMizWep">
+    <mxGraphModel dx="1036" dy="614" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2027" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="aM9ryv3xv72pqoxQDRHE-5" value="WhatsApp平台" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
+          <mxGeometry x="220" y="40" width="100" height="990" as="geometry" />
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-14" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;elbow=vertical;curved=0;" parent="1" target="VgsJbdlyxV4YgsutqECM-9" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="140" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="420" y="150" />
+              <mxPoint x="360" y="140" />
+              <mxPoint x="360" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-16" value="触发webhook" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="VgsJbdlyxV4YgsutqECM-14" vertex="1" connectable="0">
+          <mxGeometry x="0.3905" relative="1" as="geometry">
+            <mxPoint x="-25" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-17" style="edgeStyle=elbowEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;elbow=vertical;curved=0;" parent="1" source="VgsJbdlyxV4YgsutqECM-9" target="VgsJbdlyxV4YgsutqECM-10" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="530" y="180" />
+              <mxPoint x="510" y="180" />
+              <mxPoint x="530" y="230" />
+              <mxPoint x="500" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-18" value="处理消息" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="VgsJbdlyxV4YgsutqECM-17" vertex="1" connectable="0">
+          <mxGeometry x="0.1504" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-9" value="WhatsAppController" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
+          <mxGeometry x="390" y="40" width="120" height="980" as="geometry" />
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-10" value="WhatsAppService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
+          <mxGeometry x="620" y="40" width="120" height="980" as="geometry" />
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-21" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;" parent="1" vertex="1">
+          <mxGeometry x="550" y="320" width="300" height="390" as="geometry" />
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-23" value="非聊天消息" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="680" y="350" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="710" y="380" />
+            </Array>
+            <mxPoint x="680" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-24" value="解析消息内容，&lt;br&gt;获取消息发送人，接收人，&lt;br&gt;消息类型等信息" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="680" y="560" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="710" y="590" />
+            </Array>
+            <mxPoint x="680" y="590" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-25" value="根据消息id,&lt;br&gt;判断消费过此消息" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="680" y="410" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="710" y="440" />
+            </Array>
+            <mxPoint x="680" y="440" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-28" value="break" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;" parent="1" vertex="1">
+          <mxGeometry x="590" y="460" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="VgsJbdlyxV4YgsutqECM-29" value="返回要发送的信息" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="680" y="620" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="710" y="650" />
+            </Array>
+            <mxPoint x="680" y="650" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="j4sf0hbA4lDeD8kN4RSM-2" value="封装消息" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="680" y="730" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="710" y="760" />
+            </Array>
+            <mxPoint x="680" y="760" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="j4sf0hbA4lDeD8kN4RSM-3" value="发送消息" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;" parent="1" target="QSkSZkXQvmmZCzkyl63a-2" edge="1">
+          <mxGeometry x="-0.1823" relative="1" as="geometry">
+            <mxPoint x="680" y="820" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="680" y="810" />
+            </Array>
+            <mxPoint x="680" y="820" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="j4sf0hbA4lDeD8kN4RSM-4" value="加锁，防止重复处理" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="680" y="240" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="710" y="270" />
+            </Array>
+            <mxPoint x="680" y="270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="j4sf0hbA4lDeD8kN4RSM-5" value="缓存消息id，防重复消费" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="680" y="840" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="710" y="870" />
+            </Array>
+            <mxPoint x="680" y="870" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="j4sf0hbA4lDeD8kN4RSM-8" value="" style="endArrow=classic;html=1;rounded=0;" parent="1" source="VgsJbdlyxV4YgsutqECM-10" target="aM9ryv3xv72pqoxQDRHE-5" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="630" y="400" as="sourcePoint" />
+            <mxPoint x="680" y="350" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="510" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="j4sf0hbA4lDeD8kN4RSM-9" value="返回成功响应" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="j4sf0hbA4lDeD8kN4RSM-8" vertex="1" connectable="0">
+          <mxGeometry x="-0.0024" y="1" relative="1" as="geometry">
+            <mxPoint x="1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="j4sf0hbA4lDeD8kN4RSM-10" value="" style="endArrow=classic;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="680" y="900" as="sourcePoint" />
+            <mxPoint x="270" y="900" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="j4sf0hbA4lDeD8kN4RSM-11" value="返回成功响应" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="j4sf0hbA4lDeD8kN4RSM-10" vertex="1" connectable="0">
+          <mxGeometry x="-0.0024" y="1" relative="1" as="geometry">
+            <mxPoint x="1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QSkSZkXQvmmZCzkyl63a-2" value="机器人或客服" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
+          <mxGeometry x="914" y="40" width="100" height="990" as="geometry" />
+        </mxCell>
+        <mxCell id="_nf3qHHgf9jJDB_xuZyC-1" value="用户" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
+          <mxGeometry x="60" y="40" width="100" height="990" as="geometry" />
+        </mxCell>
+        <mxCell id="_nf3qHHgf9jJDB_xuZyC-3" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=0.091;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="_nf3qHHgf9jJDB_xuZyC-1" target="aM9ryv3xv72pqoxQDRHE-5" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="120" y="130" as="sourcePoint" />
+            <mxPoint x="190" y="80" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="190" y="130" />
+              <mxPoint x="240" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_nf3qHHgf9jJDB_xuZyC-4" value="发消息" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="_nf3qHHgf9jJDB_xuZyC-3" vertex="1" connectable="0">
+          <mxGeometry x="0.3699" y="-1" relative="1" as="geometry">
+            <mxPoint x="-29" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_nf3qHHgf9jJDB_xuZyC-5" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=0.091;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="_nf3qHHgf9jJDB_xuZyC-1" target="aM9ryv3xv72pqoxQDRHE-5" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="110" y="130" as="sourcePoint" />
+            <mxPoint x="270" y="130" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="190" y="130" />
+              <mxPoint x="210" y="130" />
+              <mxPoint x="230" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_nf3qHHgf9jJDB_xuZyC-6" value="发消息" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="_nf3qHHgf9jJDB_xuZyC-5" vertex="1" connectable="0">
+          <mxGeometry x="0.3699" y="-1" relative="1" as="geometry">
+            <mxPoint x="-29" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="00ciKD3FKfkS7Jcb2HDb" name="发送消息给用户">
+    <mxGraphModel dx="1036" dy="614" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2027" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="yDjMkbE9UYjiChRhRn_f-1" value="客服" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
+          <mxGeometry x="160" y="30" width="100" height="990" as="geometry" />
+        </mxCell>
+        <mxCell id="yDjMkbE9UYjiChRhRn_f-2" value="WhatsAppSendStrategyServiceImpl" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
+          <mxGeometry x="330" y="30" width="210" height="990" as="geometry" />
+        </mxCell>
+        <mxCell id="yDjMkbE9UYjiChRhRn_f-3" value="用户" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
+          <mxGeometry x="1100" y="30" width="100" height="990" as="geometry" />
+        </mxCell>
+        <mxCell id="yDjMkbE9UYjiChRhRn_f-4" value="WhatsAppService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
+          <mxGeometry x="630" y="30" width="110" height="990" as="geometry" />
+        </mxCell>
+        <mxCell id="yDjMkbE9UYjiChRhRn_f-5" value="WhatsApp平台" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
+          <mxGeometry x="860" y="30" width="100" height="990" as="geometry" />
+        </mxCell>
+        <mxCell id="fuFVIFSQ6kgAyc7rS2BL-1" value="" style="endArrow=classic;html=1;rounded=0;" parent="1" source="yDjMkbE9UYjiChRhRn_f-1" target="yDjMkbE9UYjiChRhRn_f-2" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="600" y="280" as="sourcePoint" />
+            <mxPoint x="430" y="230" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="340" y="120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fuFVIFSQ6kgAyc7rS2BL-2" value="发消息" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="fuFVIFSQ6kgAyc7rS2BL-1" vertex="1" connectable="0">
+          <mxGeometry x="0.0124" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="WmYMaQRByd5-DJ3m3arF-1" value="根据不同类型，获取内容" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="150" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="470" y="180" />
+            </Array>
+            <mxPoint x="440" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="WmYMaQRByd5-DJ3m3arF-2" value="" style="endArrow=classic;html=1;rounded=0;" parent="1" source="yDjMkbE9UYjiChRhRn_f-2" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="700" y="320" as="sourcePoint" />
+            <mxPoint x="680" y="270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="WmYMaQRByd5-DJ3m3arF-3" value="调用发送方法" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="WmYMaQRByd5-DJ3m3arF-2" vertex="1" connectable="0">
+          <mxGeometry x="0.1886" y="-3" relative="1" as="geometry">
+            <mxPoint x="-20" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="WmYMaQRByd5-DJ3m3arF-4" value="构造消息类" style="html=1;align=left;spacingLeft=2;endArrow=block;rounded=0;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="690" y="320" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="720" y="350" />
+            </Array>
+            <mxPoint x="690" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5UBSUAUnLoIM521q5wS8-1" value="" style="endArrow=classic;html=1;rounded=0;" parent="1" source="yDjMkbE9UYjiChRhRn_f-4" target="yDjMkbE9UYjiChRhRn_f-3" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="700" y="520" as="sourcePoint" />
+            <mxPoint x="860" y="470" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="840" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5UBSUAUnLoIM521q5wS8-2" value="发送消息" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="5UBSUAUnLoIM521q5wS8-1" vertex="1" connectable="0">
+          <mxGeometry x="-0.1273" y="-4" relative="1" as="geometry">
+            <mxPoint x="23" y="-14" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
