@@ -326,7 +326,7 @@ https://gitee.com/NewBornTechnology/jekins-deploy-test.git
 
 **Name**：选择之前配置的服务器
 
-**Source files**：要上传到部署的服务器的源文件，填写这个任务的相对位置
+**Source files**：要上传到部署的服务器的文件，填写这个jekins项目路径的相对位置
 
 这个任务在jenkins工作空间`/var/lib/jenkins/workspace/maven_test/`
 
@@ -336,7 +336,7 @@ jar包位置`/var/lib/jenkins/workspace/maven_test/target/jekins-deploy-test-0.0
 
 **Remove prefix**：移除jar包的前缀`target/`，不然传输到部署服务器的路径就会是`/root/root/target/jekins-deploy-test-0.0.1.jar`
 
-**Remote directory**：传输的jar包目录（相对路径），绝对路径是Publish over SSH配置的Remote directory，所以最终这个jar路径是`/root/root/jekins-deploy-test-0.0.1.jar`,刚好配置的都是root目录名，这个目录不存在会创建
+**Remote directory**：传输到部署服务器的相对路径，绝对路径是Publish over SSH配置的Remote directory，所以最终这个jar路径是`/root/root/jekins-deploy-test-0.0.1.jar`,刚好配置的都是root目录名，这个目录不存在会创建
 
 ![image-20241122162933604](./assets/image-20241122162933604.png)
 
@@ -352,3 +352,55 @@ root       3285      1 22 00:48 ?        00:00:04 java -jar /var/lib/jenkins/wor
 ![image-20241122164951543](./assets/image-20241122164951543.png)
 
 # 结合docker自动部署java服务
+
+跟上面步骤一样，也是要创建maven项目，用于自动打包
+
+不同的就是传输目录我变动了系哦啊，执行的命令使用写好的启动docker的脚本
+
+![image-20241205191643521](./assets/image-20241205191643521.png)
+
+提前在传输的目录写好启动脚本，Dockerfile，docker-compose.yml，用于启动Docker容器
+
+**Dockerfile**
+
+```dockerfile
+from openjdk:8
+# 当前目录下的jekins-deploy-test-0.0.1.jar 复制到容器的根目录
+COPY ./jekins-deploy-test-0.0.1.jar /jekins-deploy-test-0.0.1.jar
+# 定义容器启动时的命令，运行 JAR 文件
+ENTRYPOINT ["java","-jar","/jekins-deploy-test-0.0.1.jar"]
+```
+
+**docker-compose.yml**
+
+```yaml
+services:
+  jekins-deploy-test: #我们定义了一个名为 jekins-deploy-test 的服务，这个服务的相关配置会放在这个服务名称下面
+    image: jekins-deploy-test:0.1 #Docker Compose 会使用这个指定的镜像来运行容器。如果镜像不存在，Docker Compose 会自动根据 build 配置尝试构建镜像。
+    container_name: jekins-deploy-test #默认情况下，Docker 会为每个容器生成一个随机的名字，这样设置后，容器将会使用 jekins-deploy-test 作为容器名称，方便识别和管理。
+    build: #如果你提供了 build 配置，Docker Compose 会根据指定的 Dockerfile 来构建镜像。通常用于开发时需要自定义镜像。
+      dockerfile: Dockerfile #Docker Compose 会使用此文件作为构建镜像的蓝图。它会在当前目录查找 Dockerfile，如果文件名不同，可以在此处指定不同的文件名。
+    ports:
+      - "8666:8081"
+```
+
+**start.sh**
+
+```sh
+cd /root/docker
+docker build -t jekins-deploy-test:0.1 .
+docker-compose up -d
+```
+
+
+
+立即构建项目，等待执行完成
+
+如果提示`ERROR: Exception when publishing, exception message [Exec exit status not zero. Status [126]]`
+
+则表示要执行的脚本权限不足，执行下面命令即可
+
+```sh
+chmod +x /root/docker/start.sh
+```
+
