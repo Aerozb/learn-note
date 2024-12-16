@@ -1,8 +1,8 @@
 # jenkins版本和所需jdk版本的匹配图
 
-https://www.jenkins.io/doc/book/platform-information/support-policy-java/
+[官方支持策略文档](https://www.jenkins.io/doc/book/platform-information/support-policy-java/)
 
-<img src="./assets/image-20241022145822046.png" alt="image-20241022145822046" style="zoom: 33%;" />
+![Jenkins-JDK 版本兼容图](./assets/image-20241022145822046.png)
 
 # 安装
 
@@ -171,7 +171,9 @@ find / -iname jenkins | xargs -n 1000 rm -rf
 rpm -qa | grep java | xargs rpm -e --nodeps
 ```
 
-# 简单自动部署java服务
+# 自动部署java服务-最简单
+
+>  部分参考：https://segmentfault.com/a/1190000042430957
 
 ## 安装maven
 
@@ -200,7 +202,7 @@ export PATH=${MAVEN_HOME}/bin:${PATH}
 source /etc/profile
 ```
 
-配置maven国内镜像和仓库地址，编辑 maven目录/conf/settings.xml
+配置maven国内镜像(使用阿里云镜像加速下载速度)和仓库地址，编辑 maven目录/conf/settings.xml
 
 ```xml
 <localRepository>/root/apache-maven-3.9.9/repository</localRepository>
@@ -256,16 +258,16 @@ source /etc/profile
    - `Remote Directory` 是此配置中所有操作的起始目录或根目录。
    - 文件的上传路径和后续命令的执行路径都相对于此目录。
 
-   目录必须存在：
+2. 目录必须提前创建：
 
    - 插件本身不会自动创建这个目录，因此在使用前需要确保目标服务器上该目录已经存在。
 
-   文件只能存放在此目录下：
+3. 文件只能存放在此目录下：
 
    - 插件只能上传文件到此目录及其子目录，无法超出这个范围。
    - 这是一个限制，以避免插件意外地覆盖或影响不相关的文件。
 
-   命令执行的权限不受限制：
+4. 命令执行的权限不受限制：
 
    - 重要提示：虽然文件传输受限于 `Remote Directory`，但在该目录下执行的命令（如 `execCommand`）却没有这种限制。
    - 如果传输文件的用户有权限，这些命令可以在任何目录创建、删除或移动文件。
@@ -351,15 +353,25 @@ root       3285      1 22 00:48 ?        00:00:04 java -jar /var/lib/jenkins/wor
 
 ![image-20241122164951543](./assets/image-20241122164951543.png)
 
-# 结合docker自动部署java服务
+# 自动化部署 Java 应用到 Docker 容器
+
+> 通过 Jenkins 的自动化流程，将构建的 Java 应用打包并自动部署到 Docker 容器中，简化了部署过程。
+>
+> 部分参考：https://www.jianshu.com/p/1c777df20c5d
 
 跟上面步骤一样，也是要创建maven项目，用于自动打包
 
-不同的就是传输目录我变动了系哦啊，执行的命令使用写好的启动docker的脚本
+不同的是
+
+1. `Remote directory`传输目录变动
+
+2. 执行的命令使用写好的启动docker的脚本
 
 ![image-20241205191643521](./assets/image-20241205191643521.png)
 
-提前在传输的目录写好启动脚本，Dockerfile，docker-compose.yml，用于启动Docker容器
+## 写脚本
+
+提前在传输的目录`/root/docker`写好**启动脚本**，**Dockerfile**，**docker-compose.yml**，用于启动Docker容器
 
 **Dockerfile**
 
@@ -392,9 +404,9 @@ docker build -t jekins-deploy-test:0.1 .
 docker-compose up -d
 ```
 
-
-
 立即构建项目，等待执行完成
+
+## 遇到的问题
 
 如果提示`ERROR: Exception when publishing, exception message [Exec exit status not zero. Status [126]]`
 
@@ -402,5 +414,66 @@ docker-compose up -d
 
 ```sh
 chmod +x /root/docker/start.sh
+```
+
+# 自动部署java服务-使用pipeline 
+
+新建一个`流水线任务`
+
+流水线脚本添加以下内容，然后保存并立即构建，java服务就运行了
+
+```groovy
+pipeline {
+    // 任何可用的代理节点运行流水线
+    agent any 
+
+    stages {
+        // 第一个阶段：拉取代码
+        stage('checkout') {
+            steps {
+                script {
+                    // 使用 GitSCM 插件拉取代码库
+                    checkout([$class: 'GitSCM',
+                    branches: [[name: '*/master']],  // 指定要拉取的分支，这里是master分支
+                    doGenerateSubmoduleConfigurations: false,  // 禁用子模块配置
+                    userRemoteConfigs: [[credentialsId: 'a763d3ae-0a7e-4e26-b97f-342d84f48490',  // 认证信息，用于从Gitee获取代码
+                    url: 'https://gitee.com/NewBornTechnology/jekins-deploy-test.git']]])  // 配置 Gitee 仓库地址
+                }
+            }
+        }
+        
+        // 第二个阶段：构建项目
+        stage('Build') {
+            steps {
+                // 执行Maven构建命令，清理并安装依赖
+                sh '/root/apache-maven-3.9.9/bin/mvn clean install'  
+            }
+        }
+
+        // 第三个阶段：传输文件到远程服务器
+        stage('Transfer Files') {
+            steps {
+                script {
+                    // 使用 sshPublisher 插件上传文件到远程服务器
+                    sshPublisher(publishers: [
+                        sshPublisherDesc(
+                            configName: '本机',  // 配置名称，用于指定 SSH 配置信息
+                            transfers: [
+                                sshTransfer(
+                                    sourceFiles: 'target/jekins-deploy-test-0.0.1.jar',  // 本地需要传输的文件
+                                    removePrefix: 'target/',  // 去掉本地路径中的 'target/' 部分
+                                    remoteDirectory: 'pipeline',  // 远程服务器上的目标目录
+                                    execCommand: '/root/docker/start.sh'  // 传输文件后执行的远程命令，这里启动一个 Docker 服务
+                                )
+                            ],
+                            verbose: true  // 启用详细日志输出
+                        )
+                    ])
+                }
+            }
+        }
+    }
+}
+
 ```
 
