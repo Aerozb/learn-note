@@ -418,6 +418,10 @@ chmod +x /root/docker/start.sh
 
 # 自动部署java服务-使用pipeline 
 
+> 参考：[Jenkins Pipeline 语法 ](https://www.cnblogs.com/juno3550/p/14693530.html)
+>
+> [掌握Jenkins Pipeline流水线语法：从入门到精通，30个实战案例助你轻松搞定自动化构建！](https://zhuanlan.zhihu.com/p/721853279)
+
 新建一个`流水线任务`
 
 流水线脚本添加以下内容，然后保存并立即构建，java服务就运行了
