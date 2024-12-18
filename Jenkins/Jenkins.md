@@ -481,3 +481,69 @@ pipeline {
 
 ```
 
+# 常用插件安装
+
+## Stage View
+
+**介绍**
+
+用于可视化展示 **Pipeline** 执行过程中各个阶段的执行状态。它提供了一个直观的方式来查看和监控每个阶段的执行情况，帮助用户更好地了解构建过程的进展。
+
+**使用**
+
+为了能够在 **Stage View** 中看到阶段信息，需要在你的 Pipeline 脚本中使用 `stage` 关键字。如
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git 'https://github.com/your-repository.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn clean install'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh 'kubectl apply -f deployment.yaml'
+            }
+        }
+    }
+}
+
+```
+
+
+
+<img src="./assets/image-20241218160214577.png" alt="image-20241218160214577" style="zoom:33%;" />
+
+记得重启下，才能生效，我是重启了机子才生效，重启jenkins貌似没生效
+
+## Extended Choice Parameter
+
+用于动态生成和选择参数的插件。这个插件使得你可以在 Jenkins 的构建过程中创建更复杂和灵活的参数，支持多种选择方式，包括下拉列表、多选框、文本框等。它比原生的 Choice Parameter 提供了更多的功能和灵活性。
+
+**使用方法**
+
+配置好key和value
+
+<img src="./assets/image-20241218170612814.png" alt="image-20241218170612814" style="zoom:33%;" />
+
+引用key
+
+![image-20241218172752604](./assets/image-20241218172752604.png)
+
+选择key
+
+<img src="./assets/image-20241218172715848.png" alt="image-20241218172715848" style="zoom: 50%;" />
+
+构建查看输出是否为设定的值
+
+![image-20241218172908525](./assets/image-20241218172908525.png)
+
+可以看出打印了gitValue是正常的
