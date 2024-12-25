@@ -749,3 +749,50 @@ public class TxmsgConsumer implements RocketMQListener<String> {
 正常转账，张三初始金额是10，李四初始金额0，转账后张三-1,李四+1，一个9一个1，正常
 
 ![image-20240223171856113](./assets/image-20240223171856113.png)
+
+
+
+# Spring使用RocketMQ，使用广播模式让每个消费者都能消费到
+
+### 消息模型对比
+
+| **特性**         | **广播模式 (BROADCASTING)**                        | **集群模式 (CLUSTERING)**                            |
+| ---------------- | -------------------------------------------------- | ---------------------------------------------------- |
+| **消息分发方式** | 所有消费者都会接收到消息                           | 每条消息只会被同一个消费者组中的一个消费者消费       |
+| **消费并发性**   | 无并发控制，每个消费者独立接收消息                 | 并行消费，多个消费者共同处理消息                     |
+| **负载均衡**     | 无负载均衡，所有消费者都接收消息                   | 消息在消费者组内均衡分配，负载均衡                   |
+| **场景**         | 需要所有消费者接收到相同消息的场景，如通知、日志等 | 需要并行消费、任务分配的场景，如日志处理、任务调度等 |
+| **适用情况**     | 短时间内需要广播通知给所有消费者                   | 高并发消息消费，需要多个消费者分担负载               |
+
+## 使用
+
+这样所有服务都会消费，每个服务的WhatsappSDK客户端都会被重置
+
+```java
+package org.apache.rocketmq.spring.annotation;
+
+public enum MessageModel {
+    BROADCASTING("BROADCASTING"),
+    CLUSTERING("CLUSTERING");
+
+    private final String modeCN;
+}
+```
+
+```java
+@Component
+@RocketMQMessageListener(
+        topic = CommonConstant.WHATSAPP_RESET_API_CLIENT_TOPIC,
+        consumerGroup = CommonConstant.WHATSAPP_RESET_API_CLIENT_GROUP,
+        messageModel = MessageModel.BROADCASTING // 设置为广播模式
+)
+@Slf4j
+public class WhatsappResetApiClientConsumerListener implements RocketMQListener<String> {
+    @Override
+    public void onMessage(String accountId) {
+        log.info("whatsapp,重置SDK客户端,消息开始消费,accountId:{}", accountId);
+        WhatsappUtil.resetApiClient(accountId);
+    }
+}
+```
+
