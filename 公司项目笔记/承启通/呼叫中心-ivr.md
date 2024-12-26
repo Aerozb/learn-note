@@ -230,3 +230,72 @@ initCompanyRunState()就是去执行这个逻辑
 当接听者接听电话时，FreeSWITCH 会将这两个通道桥接起来，实现音频流的传输。
 
 这种设计允许 FreeSWITCH 同时处理多个呼叫，每个呼叫都有独立的通道和处理逻辑。
+
+# AI外呼机器人画布
+
+创建一个机器人，点击设计进入画布，一个画布下有多个场景，等于是一个机器人有多个场景，每个场景由多个节点组成
+
+## 实体管理
+
+**概念**
+
+实体识别（[NER](https://so.csdn.net/so/search?q=NER&spm=1001.2101.3001.7020)）是自然语言处理中的一项重要任务，旨在从文本中识别出具有特定意义的实体（如人名、地名、组织名、时间、金额等）。这些实体在许多应用中起着关键作用，尤其是在信息提取、问答系统、文本分类等任务中。
+
+**页面配置**
+
+配置实体名称、实体值
+
+- **人名**：如“Albert Einstein”、“李白”。
+- **地名**：如“Paris”、“北京”。
+
+**应用场景**
+
+根据某个节点配置的实体名称，然后用这个实体名称根据用户说的话识别出数据，这个数据赋值给变量
+
+## 变量管理
+
+**概念**
+
+用于保存用户输入的动态数据，可以在整个外呼流程中供系统使用
+
+**页面配置**
+
+配置变量名称，变量描述
+
+date，通话的日期
+
+**应用场景**
+
+在各个节点中，根据用户说的话转成内容，在提取需要的数据赋值给这个变量，之后在java代码中就可以获取并使用这个变量；分析用户的话是底层做，这个变量存在哪都行，只要能拿到，比如redis，或者线程变量中
+
+ ## 普通节点
+
+当走到这个节点，可以分析用户说的话，提取想要的数据到变量，给当前流程使用；
+
+根据用户的回答看是否是肯定、拒绝、否定、无应答、默认、自定义分支五个类型中的一个再接着往下走下个节点
+
+走到当前节点可以设置当前用户的意向等级，意向等级是从意向标签配置页面获取的，比如A(意向较强）B(意向一般）C(带筛选）D(意向较弱）E(需在跟进）F(无需跟进）其中一个
+
+## 跳转节点
+
+比如从上面的肯定分支走到这里，直接执行下面选项，可选项 挂机、跳转到下一场景、跳转到指定场景、转人工
+
+## 判断节点
+
+有多个分支，每个分支是变量和变量间的判断或者变量和自己填的数据判断，符合条件就往下一个节点
+
+## 按键节点
+
+可以添加1-9的数字，根据1-9生生成不同分支
+
+# 外呼流程（了解，没负责）
+
+`com.linkcircle.report.outbound.service.impl.IvrOutboundTaskServiceImpl#addOrUpdateOne`创建任务类型为ivr的外呼定时任务
+
+`com.cqt.queue.calltask.service.impl.IvrOutboundCallTaskStrategyImpl#ivrOutboundCallTaskJob`这个是执行定时任务的方法，到时间等待执行
+
+`com.cqt.queue.calltask.service.impl.IvrOutboundCallTaskStrategyImpl#originate`发起外呼
+
+`com.cqt.call.service.rpc.CallControlRemoteServiceImpl#request`向fs底层发起呼叫请求
+
+`com.cqt.call.strategy.client.impl.OutboundCallTaskClientRequestStrategyImpl#deal`最后调用到这里，里面就是去请求底层了
