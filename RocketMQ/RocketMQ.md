@@ -825,3 +825,62 @@ public class WhatsappResetApiClientConsumerListener implements RocketMQListener<
 ### 总结
 
 `DefaultMQPushConsumer` 中的 "Push" 其实表示的是消费者以“推模式”消费消息，虽然消费者依然是从队列中拉取消息，但在实现层面是通过推送消息的方式来管理消息消费的。因此，消费者处理消息的过程是**由服务器推送消息给消费者**来触发的。
+
+# RocketMQ 使用的是哪种方式（Push 或 Pull）
+
+## Push 模式（默认）
+
+- 使用 `DefaultMQPushConsumer` 或 `@RocketMQMessageListener` 注解。
+- 消息由 Broker 自动推送到消费者，消费者无需主动拉取。
+
+## Pull 模式
+
+- 使用 `DefaultMQPullConsumer` 来手动拉取消息。
+- 消费者主动请求 Broker 拉取消息并进行处理。
+
+## Push 模式实现
+
+在 **Push 模式** 下，RocketMQ Broker 会主动通过长连接推送消息给消费者。这种方式能够确保消息的快速到达，并且具有较低的延迟。
+
+Broker 和消费者之间的通信是通过 **Netty** 实现的，消费者注册订阅后，Broker 会在消息到达时自动推送给消费者。
+
+## Pull 模式实现
+
+```java
+DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("consumerGroup");
+consumer.setNamesrvAddr("localhost:9876");
+consumer.start();  // 启动消费者
+
+while (true) {
+    // 拉取消息
+    PullResult pullResult = consumer.pullBlockIfNotFound(new MessageQueue("TestTopic", "localhost", 0), "*", 0, 32);
+    // 处理消息
+    System.out.println(pullResult.getMsgList());
+}
+```
+
+# 消费者是否只会绑定某个队列，还是会消费该主题的其他队列
+
+## 默认队列数
+
+在 **RocketMQ** 中，主题（**Topic**）的默认队列数通常是 **4 个**
+
+## syncSendOrderly(通过hashkey来实现顺序消费，保证每次都在同一队列)
+
+**`syncSendOrderly`** 方法通过 `hashKey` 来指定消息应该发送到哪个队列，从而确保相同 `hashKey` 的消息总是发送到同一个队列，这样保证了顺序消费
+
+```java
+org.apache.rocketmq.spring.core.RocketMQTemplate#syncSendOrderly(topic, payload, hashKey)
+```
+
+- `hashKey`: 用于确保消息有序性的一种方法。通过 `hashKey` 来选择消息应该发送到哪个队列（Queue）。通常这个 `hashKey` 是一个能够代表业务顺序的字段，例如 `orderId`、`productId` 等。当多个消息有相同的 `hashKey` 时，它们会被发送到同一个队列，保证它们在这个队列中的顺序。
+
+## 总结
+
+**顺序消费（`ConsumeMode.ORDERLY`）**：每同一消费者实例只会从它分配的队列中按顺序消费消息，**绑定不会变的**；
+
+**并发消费（`ConsumeMode.CONCURRENTLY`）**：每消费者可以从不同的队列中并行消费消息，**绑定是会变的**
+
+**集群消费模式（MessageModel.CLUSTERING）**：每个消息队列只能由一个消费者实例消费。不同的消费者实例可以消费 **不同的队列**，确保负载均衡。
+
+**广播消费模式（org.apache.rocketmq.spring.annotation.MessageModel#BROADCASTING）**：所有消费者都消费相同的消息，不会有消费者实例绑定到某个特定队列。
