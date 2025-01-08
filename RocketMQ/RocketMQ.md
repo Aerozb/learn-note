@@ -1,5 +1,7 @@
 # RocketMQ5.2.0-linux 单机部署
 
+## linux
+
 要保证内存够，不然会杀进程，或者修改`runserver.sh`,`runbroker.sh`脚本把内存调小，这个试了感觉没啥效果
 
 ```shell
@@ -21,6 +23,20 @@ sh mqbroker -n localhost:9876 --enable-proxy &
 # 实时查看代理服务器日志，以便检查是否正常运行
 tail -f ~/logs/rocketmqlogs/proxy.log
 ```
+
+## windows
+
+**下载并解压**
+
+https://dist.apache.org/repos/dist/release/rocketmq/5.2.0/rocketmq-all-5.2.0-bin-release.zip
+
+**启动mqnamesrv**
+
+运行`bin\mqnamesrv.cmd`
+
+**启动Broker**
+
+进入 `bin` 目录,执行`start mqbroker.cmd -n localhost:9876`
 
 # 概念
 
@@ -884,3 +900,204 @@ org.apache.rocketmq.spring.core.RocketMQTemplate#syncSendOrderly(topic, payload,
 **集群消费模式（MessageModel.CLUSTERING）**：每个消息队列只能由一个消费者实例消费。不同的消费者实例可以消费 **不同的队列**，确保负载均衡。
 
 **广播消费模式（org.apache.rocketmq.spring.annotation.MessageModel#BROADCASTING）**：所有消费者都消费相同的消息，不会有消费者实例绑定到某个特定队列。
+
+# 集群模式下，队列分配给哪个消费者
+
+## 4.X版本-队列粒度负载均衡
+
+> 同一消费者分组内的多个消费者将按照队列粒度消费消息，即每个队列仅被一个消费者消费
+
+<img src="./assets/消费者扩容3-65293ca6c2a01bf0a186821ba3432417-1736317871672-2.jpeg" alt="消费者扩容3-65293ca6c2a01bf0a186821ba3432417" style="zoom: 25%;" />
+
+<img src="./assets/消费者扩容3-65293ca6c2a01bf0a186821ba3432417-1736317946583-4.jpeg" alt="消费者扩容3-65293ca6c2a01bf0a186821ba3432417" style="zoom:25%;" />
+
+<img src="./assets/消费者扩容3-65293ca6c2a01bf0a186821ba3432417.jpeg" alt="消费者扩容3-65293ca6c2a01bf0a186821ba3432417" style="zoom:25%;" />
+
+1. 如图一二，本来有4个队列，随着消费者增加就平均分配给每个消费者;
+
+2. 当总队列数小于消费者的数量时，消费者将分配不到队列，即使消费者再多也无法提升消费能力
+
+默认的分配策略是平均分配
+
+```java
+public DefaultMQPushConsumer() {
+        this(MixAll.DEFAULT_CONSUMER_GROUP, null, new AllocateMessageQueueAveragely());
+    }
+```
+
+## 5.X版本-消息粒度负载均衡
+
+> 消息粒度负载均衡是在 **队列粒度负载均衡** 的基础上，进一步 **对消息的消费进行细粒度控制**。不同于传统的队列粒度，它允许 **一个队列中的消息** 根据 **不同消费者的消费进度**， **动态地分配给不同消费者**。
+>
+> 换句话说，消息粒度负载均衡的目标是 **基于消费进度** 来实现消息的动态分配，让每条消息都能够被分配到合适的消费者进行消费。
+
+**举个例子**：
+
+- 依然假设 Topic A 有 4 个队列（Queue0、Queue1、Queue2、Queue3）。
+- 消费者组 `GroupA` 有 3 个消费者（C1、C2、C3）。
+- C1 会首先消费 `Queue0` 中的消息，C2 会消费 `Queue1` 中的消息，C3 会消费 `Queue2` 中的消息。
+- **如果某个消费者（比如 C1）由于消费卡住或处理缓慢导致其 Offset 没有更新，Broker 会将 C1 尚未消费的消息重新分配给其他消费者进行处理**，这就体现了消息粒度的负载均衡。
+
+**优点**
+
+相对于队列粒度负载均衡策略，消息粒度负载均衡策略有以下特点：
+
+- 消费分摊更均衡：对于传统队列级的负载均衡策略，如果队列数量和消费者数量不均衡，则可能会出现部分消费者空闲，或部分消费者处理过多消息的情况。消息粒度负载均衡策略无需关注消费者和队列的相对数量，能够更均匀地分摊消息。
+- 对非对等消费者更友好：在线上生产环境中，由于网络机房分区延迟、消费者物理资源规格不一致等原因，消费者的处理能力可能会不一致，如果按照队列分配消息，则可能出现部分消费者消息堆积、部分消费者空闲的情况。消息粒度负载均衡策略按需分配，消费者处理任务更均衡。
+- 队列分配运维更方便：传统基于绑定队列的负载均衡策略必须保证队列数量大于等于消费者数量，以免产生部分消费者获取不到队列出现空转的情况，而消息粒度负载均衡策略则无需关注队列数。
+
+## 区别
+
+这两种方式都是某个队列分配给某个消费者
+
+**队列粒度负载均衡** 是按照队列进行分配，消费者只能消费特定队列中的所有消息。
+
+**消息粒度负载均衡** 是基于每条消息的消费进度，消费者可以消费队列中的不同消息，未消费的消息会被动态分配给其他消费者。
+
+# 手动配置消费者
+
+不使用注解@RocketMQMessageListener，而是手动配置消费者可以设置更多消费者参数
+
+注意：客户端和服务端版本要一致，不然消费不到，比如服务端使用的5.2，客户端用`rocketmq-spring-boot-starter:2.3.0`里面使用的是`rocketmq-client-5.2.0.jar`才会生效
+
+## 配置文件
+
+```yaml
+rocketmq:
+  name-server: 127.0.0.1:9876  # RocketMQ 地址
+  producer:
+    group: test-group  # 随便给一个默认的生产者组，不填启动项目报错 Field rocketMQTemplate in com.yhy.annotationImpl.producer.SendOrderlyMessage required a bean of type 'org.apache.rocketmq.spring.core.RocketMQTemplate' that could not be found.
+server:
+  port: 8081
+```
+
+## 配置消费者
+
+```java
+@Component
+public class MessageConsumerConfig implements CommandLineRunner {
+
+    @Resource
+    private TestMessageListenerConcurrently testMessageListenerConcurrently;
+
+    @Value("${server.port}")
+    private String port;
+
+    @Override
+    public void run(String... args) throws Exception {
+
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer();
+
+        consumer.setNamesrvAddr("127.0.0.1:9876");
+
+        consumer.subscribe(Constant.TEST_TOPIC, "*");
+
+        consumer.setConsumerGroup(Constant.TEST_GROUP);
+        consumer.setMessageModel(MessageModel.CLUSTERING);
+        //注册消息监听器，用于消费消息时的具体逻辑处理。
+        //作用：定义如何处理接收到的消息。
+        consumer.registerMessageListener(testMessageListenerConcurrently);
+        //设置每次拉取消息的最大条数。
+        //默认值：32
+        //作用：影响拉取性能和网络负载。
+        consumer.setPullBatchSize(128);
+        //设置消费消息时的批量最大条数。
+        //默认值：1
+        //作用：提升消费效率，减少消费次数。
+        consumer.setConsumeMessageBatchMaxSize(10);
+
+        //设置消费者消费线程池的最小线程数。
+        //默认值：20
+        //作用：控制并发消费的下限。
+        consumer.setConsumeThreadMin(8);
+        //设置消费者消费线程池的最大线程数。
+        //默认值：64
+        //作用：控制并发消费的上限。
+        consumer.setConsumeThreadMax(20);
+        //控制台-消费者终端显示的就是这个名字
+        consumer.setInstanceName("消费者" + port);
+        //设置消费者从哪里开始消费：
+        //CONSUME_FROM_LAST_OFFSET：从队列末尾开始消费（默认）。
+        //CONSUME_FROM_FIRST_OFFSET：从队列开始消费。
+        //CONSUME_FROM_TIMESTAMP：从指定时间点开始消费。
+        //作用：控制初次消费的起始位置。
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        //设置拉取消息的时间间隔，单位为毫秒。
+        //默认值：0（立即拉取）。
+        //作用：通过增加间隔降低频繁拉取对 Broker 的压力。
+        consumer.setPullInterval(0);
+        //pullThresholdForQueue 的默认值是 1000，意味着每个队列每次最多可以拉取 1000 条消息。如果队列中的消息数量超过 1000，消费者将不会继续拉取消息，直到有消息被处理完并释放出足够的空间。
+        //默认值：1000
+        //作用：限制内存中的消息缓存数量，避免内存溢出。
+        consumer.setPullThresholdForQueue(1000);
+        //设置拉取异常时的延迟时间，单位为毫秒。
+        //默认值：3000
+        //作用：在出现异常时控制拉取频率，避免频繁重试。
+        consumer.setPullTimeDelayMillsWhenException(10);
+        //如果消费者无法消费某个队列的消息，系统会暂停对该队列的消费 ? 秒钟，然后再次尝试消费。
+        //默认值：1000（1秒）
+        //作用：控制失败重试的频率。
+        consumer.setSuspendCurrentQueueTimeMillis(10);
+
+        consumer.start();
+    }
+}
+```
+
+## 消息监听器：处理消息
+
+```java
+@Slf4j
+@Component
+public class TestMessageListenerConcurrently implements MessageListenerConcurrently {
+    @Override
+    public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
+        List<String> msgList = new ArrayList<>();
+        for (MessageExt msg : msgs) {
+            String messageBody = new String(msg.getBody());
+            msgList.add(messageBody);
+        }
+        log.info("收到的消息:{}", JSON.toJSONString(msgList));
+        return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+    }
+}
+```
+
+## 测试类
+
+```java
+@RestController
+@RequestMapping
+public class TestController {
+
+    @Autowired
+    private RocketMQTemplate rocketMQTemplate;
+
+    @GetMapping("/send")
+    public void send() {
+        for (int i = 0; i < 20; i++) {
+            ThreadUtil.execute(() -> rocketMQTemplate.syncSend(Constant.TEST_TOPIC, "fuckyou" + System.currentTimeMillis()));
+        }
+    }
+}
+```
+
+## 测试结果
+
+```java
+2025-01-08 16:31:56.134  INFO 24796 --- [ad_test-group_4] c.y.m.TestMessageListenerConcurrently    : 收到的消息:["fuckyou1736325115777"]
+2025-01-08 16:31:56.134  INFO 24796 --- [ad_test-group_5] c.y.m.TestMessageListenerConcurrently    : 收到的消息:["fuckyou1736325115778","fuckyou1736325115778","fuckyou1736325115778","fuckyou1736325115777"]
+2025-01-08 16:31:56.134  INFO 24796 --- [ad_test-group_2] c.y.m.TestMessageListenerConcurrently    : 收到的消息:["fuckyou1736325115778"]
+2025-01-08 16:31:56.134  INFO 24796 --- [ad_test-group_3] c.y.m.TestMessageListenerConcurrently    : 收到的消息:["fuckyou1736325115776","fuckyou1736325115776","fuckyou1736325115778"]
+2025-01-08 16:31:56.134  INFO 24796 --- [ad_test-group_6] c.y.m.TestMessageListenerConcurrently    : 收到的消息:["fuckyou1736325115776","fuckyou1736325115776","fuckyou1736325115776","fuckyou1736325115777","fuckyou1736325115776"]
+2025-01-08 16:31:56.134  INFO 24796 --- [ad_test-group_1] c.y.m.TestMessageListenerConcurrently    : 收到的消息:["fuckyou1736325115777"]
+2025-01-08 16:31:56.134  INFO 24796 --- [ad_test-group_7] c.y.m.TestMessageListenerConcurrently    : 收到的消息:["fuckyou1736325115776","fuckyou1736325115777"]
+2025-01-08 16:31:56.135  INFO 24796 --- [ad_test-group_8] c.y.m.TestMessageListenerConcurrently    : 收到的消息:["fuckyou1736325115778","fuckyou1736325115776","fuckyou1736325115776"]
+```
+
+1. 会发现消息可以批量处理，这是注解没办法办到的，因为我们在配置消费者时设置了`consumeMessageBatchMaxSize`为10，一次性可以消费10条，实现`MessageListenerConcurrently`类时的入参也是`List<MessageExt> msgs`，表明可以处理多条
+
+2. 使用注解实现`RocketMQListener`的类入参是T message，只能1条
+
+所以自己配置可以更灵活
+
