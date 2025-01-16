@@ -35,7 +35,32 @@ Lua 提供了灵活的编程能力，FreeSWITCH 则是实现这些能力的基�
 
 1.前端拖动画布，我把画布数据存储下来，以供前端回显
 
-2.解析画布数据，生成节点关系，后续生成lua脚本使用
+2.解析画布数据，生成节点关系，后续在parent项目生成lua脚本使用
+
+**生成细节**
+
+<img src="./assets/image-20250115202610934.png" alt="image-20250115202610934" style="zoom:33%;" />
+
+```java
+public interface LuaCreateService {
+
+    /**
+     * 节点类型
+     * @return
+     */
+    String getType();
+
+    /**
+     * lua模板所需参数生成处理
+     * @param ivrNodes 相同节点类型的实体数组节点内容
+     * @return 返回需要lua模板需要的map
+     */
+    HashMap<String, Object> luaParameterCreateHandle(List<IvrNode> ivrNodes);
+
+}
+```
+
+在已创建好的ivr画布，点击生效，请求parent项目的`com.cqt.call.ivr.service.impl.LuaScriptCreateServiceImpl#luaScriptCreate`，会掉用上面的`luaParameterCreateHandle`策略方法，去各个节点实现类，返回`HashMap`，存储了这个节点的数据，前端同一个节点拖动了多个，那就会有多个节点数据，如`map.put("playbackFunctionDataList", functionDataList);`，形成最终的集合之后就是，遍历集合，使用 Apache Velocity 模板引擎，用来生成lua的脚本，上传给底层。后续电话打进来，到我们服务，看看是否需要走ivr流程，是的话就请求底层叫他调用这个lua脚本
 
 ## 通过 FreeSWITCH 平台结合 Lua 脚本语言实现 IVR 功能
 
@@ -161,7 +186,7 @@ ps -ef|grep node
 
 3. 我们在`EventMessageListenerOrderly`消费
 
-4. 进入到呼入事件`CallInEventStrategyImpl`
+4. 进入到呼入事件`CallInEventStrategyImpl` -> `callInEventStrategyFactory.deal`。（外呼的事件是`call_status`，这个是`call_in`，底层发起的请求都会在`EventMessageListenerOrderly`触发，放音状态事件也是）
 
 5. 在判断是走ivr类`CallInTransferIvrStrategyImpl`或者转人工`CallInTransferSkillStrategyImpl`类，去处理
 
@@ -190,8 +215,6 @@ ps -ef|grep node
 ## CallInEventStrategyImpl
 
 处理客户呼入的类，判断是要转人工还是转ivr
-
-
 
 ## ServiceListCache
 
@@ -299,3 +322,50 @@ date，通话的日期
 `com.cqt.call.service.rpc.CallControlRemoteServiceImpl#request`向fs底层发起呼叫请求
 
 `com.cqt.call.strategy.client.impl.OutboundCallTaskClientRequestStrategyImpl#deal`最后调用到这里，里面就是去请求底层了
+
+请求底层后，底层发送主题为`HJZXAIDEV`的mq消息，然后根据event跳转到对应处理类
+
+```json
+{
+    "server_id": "test-acd01",
+    "company_code": "000022",
+    "service_code": "HJZXAIDEV",
+    "uuid": "call_task-b5ecc620-ee1d-471c-b048-69a5fc7e1c8b",
+    "timestamp": 1736404208717,
+    "event": "call_status",
+    "data": {
+        "caller_number": "95078442",
+        "callee_number": "17551010521",
+        "status": "INVITE"
+    }
+}
+```
+
+CallStatusEventStrategyImpl -> CallStatusStrategyFactory#dealCallStatus -> InviteCallStatusStrategyImpl#deal
+
+比较完整的可以看下面流程，类似的
+
+用户接听后
+
+```json
+{
+    "server_id": "test-acd01",
+    "company_code": "000022",
+    "service_code": "HJZXAIDEV",
+    "uuid": "call_task-d90fc055-5413-4cae-b7fe-5bda4f180807",
+    "timestamp": 1736406472397,
+    "event": "call_status",
+    "data": {
+        "caller_number": "95078442",
+        "callee_number": "17551010521",
+        "status": "ANSWER"
+    }
+}
+```
+
+根据推送的消息是event，感觉就是子事件，一个事件有一堆对应的子事件，然后每个事件又有对应的事件，发散出去
+
+但是放音状态事件就没有子事件了
+
+ EventStrategyFactory#dealEvent（事件策略工厂）  -> CallStatusEventStrategyImpl#deal（上一步选择了当前的这个呼叫状态事件） -> CallStatusStrategyFactory#dealCallStatus（上一步选择了当前的这个呼叫状态策略） -> AnswerCallStatusStrategyImpl#deal(上一步选择了当前的这个接听处理策略)  ->  IvrAfterAnswerActionStrategyImpl#executeIvr(上一步根据存在CallUuidContext的外呼之后动作枚举选择了当前的这个接听后执行ivr流程)，接通后也有其他事件如播放录音
+
